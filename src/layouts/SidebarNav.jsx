@@ -1,10 +1,12 @@
 import { useLocation } from "react-router-dom";
 import workItems from "../entities/SideBar/WorkItems";
-import NavLink from "./NavLink";
-import IconSettings from "./icons/SideBar/IconSettings";
-import IconLogout from "./icons/SideBar/IconLogout";
-import IconScissors from "./icons/SideBar/IconScissors";
-import IconBox from './icons/SideBar/IconBox';
+
+  import IconSettings from "../components/icons/SideBar/IconSettings";
+  import IconLogout from "../components/icons/SideBar/IconLogout";
+  import IconScissors from "../components/icons/SideBar/IconScissors";
+
+import NavLink from "../components/other/NavLink";
+import IconBox from '../components/icons/IconBox';
 
 export default function SidebarNav({
   isOpen,
@@ -73,9 +75,16 @@ export default function SidebarNav({
         {/* ── Nav ── */}
         <nav className="flex-1 overflow-y-auto p-2">
           <SectionLabel>Работа</SectionLabel>
-          {workItems.map((item) => (
-            <NavLink key={item.href} item={item} pathname={pathname} />
-          ))}
+{workItems.map((item) => {
+  const key = item.href.replace("/", "")
+  return (
+    <NavLink
+      key={item.href}
+      item={{ ...item, counter: counters?.[key] || null }}
+      pathname={pathname}
+    />
+  )
+})}
 
           <SectionLabel>Каталог</SectionLabel>
           {catalogItems.map((item) => (

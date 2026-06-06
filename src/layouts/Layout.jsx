@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import SidebarNav from "../components/SidebarNav";
+import SidebarNav from "./SidebarNav";
 import { useAppData } from "../api/useAppData";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -19,6 +19,9 @@ function IconCheck() {
 }
 function IconPlus() {
   return <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+}
+function IconBell() {
+  return <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>;
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -40,17 +43,8 @@ const FALLBACK_SERVICES = [
   { id: "s5", name: "Услуга 5", price: 1000, duration: 30 },
 ];
 
-const ROOMS = [
-  { id: "room1", name: "Кабинет 1", active: true },
-  { id: "room2", name: "Кабинет 2", active: true },
-  { id: "room3", name: "Кабинет 3", active: true },
-  { id: "room4", name: "Кабинет 4", active: true },
-  { id: "room5", name: "Кабинет 5", active: true },
-];
-
 // ── QuickBookModal ────────────────────────────────────────────────────────────
-
-function QuickBookModal({ initialDate, initialTime, clients, services, staff, onSave, onClose }) {
+function QuickBookModal({ date, time, clients, services, staff, rooms, onSave, onClose, api }) {
   const scrollRef = useRef(null);
   useEffect(() => { scrollRef.current?.scrollTo(0, 0); }, []);
 
@@ -61,8 +55,8 @@ function QuickBookModal({ initialDate, initialTime, clients, services, staff, on
   const [foundClient, setFoundClient] = useState(null);
   const [notFound, setNotFound]       = useState(false);
   const [form, setForm]               = useState({
-    date: initialDate || today(),
-    time: initialTime || "10:00",
+    date: date || today(),
+    time: time || "10:00",
     staffId: "", serviceId: "", roomId: "",
     status: "pending", discount: 0, paidCash: 0, paidCard: 0, notes: "",
   });
@@ -118,7 +112,6 @@ function QuickBookModal({ initialDate, initialTime, clients, services, staff, on
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
       <div ref={scrollRef} className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[480px] max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
 
-        {/* header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 rounded-t-2xl shrink-0">
           <div className="text-[15px] font-bold text-zinc-900">
             Новая запись · {new Date(form.date + "T00:00:00").toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} в {form.time}
@@ -126,10 +119,8 @@ function QuickBookModal({ initialDate, initialTime, clients, services, staff, on
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-100 transition-colors"><IconX /></button>
         </div>
 
-        {/* body */}
         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
 
-          {/* КЛИЕНТ */}
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.5px] text-zinc-400 mb-2">Клиент</div>
             {foundClient ? (
@@ -152,30 +143,99 @@ function QuickBookModal({ initialDate, initialTime, clients, services, staff, on
                     onChange={e => setLookup(l => ({ ...l, firstName: e.target.value }))}
                     onKeyDown={e => e.key === "Enter" && handleLookup()}
                     className="flex-1 h-10 px-3 text-[13px] border border-zinc-200 rounded-lg bg-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+                </div>
+                <div className="flex gap-2">
                   <input type="date" value={lookup.birthDate}
                     onChange={e => setLookup(l => ({ ...l, birthDate: e.target.value }))}
                     onKeyDown={e => e.key === "Enter" && handleLookup()}
-                    className="h-10 px-3 text-[13px] border border-zinc-200 rounded-lg bg-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+                    className="flex-1 h-10 px-3 text-[13px] border border-zinc-200 rounded-lg bg-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
                   <button onClick={handleLookup}
                     className="h-10 px-4 bg-zinc-900 hover:bg-zinc-700 text-white text-[13px] font-semibold rounded-lg transition-colors shrink-0">
                     Найти
                   </button>
                 </div>
-                {notFound && <div className="text-[12px] text-red-500">Клиент не найден. Проверьте данные или добавьте через раздел «Клиенты».</div>}
+                {notFound && (
+                  <div className="space-y-3">
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="text-[13px] font-semibold text-amber-800 mb-0.5">
+                        Клиент {lookup.firstName} {lookup.lastName} ({lookup.birthDate}) не найден
+                      </div>
+                      <div className="text-[12px] text-amber-700">Заполните дополнительные данные для создания клиента</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[12px] text-zinc-500 mb-1">Фамилия *</label>
+                        <input value={lookup.lastName} onChange={e => setLookup(l => ({ ...l, lastName: e.target.value }))}
+                          className="w-full h-9 px-3 text-[13px] border border-zinc-200 rounded-lg bg-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+                      </div>
+                      <div>
+                        <label className="block text-[12px] text-zinc-500 mb-1">Имя *</label>
+                        <input value={lookup.firstName} onChange={e => setLookup(l => ({ ...l, firstName: e.target.value }))}
+                          className="w-full h-9 px-3 text-[13px] border border-zinc-200 rounded-lg bg-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[12px] text-zinc-500 mb-1">Дата рождения *</label>
+                        <input type="date" value={lookup.birthDate} onChange={e => setLookup(l => ({ ...l, birthDate: e.target.value }))}
+                          className="w-full h-9 px-3 text-[13px] border border-zinc-200 rounded-lg bg-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+                      </div>
+                      <div>
+                        <label className="block text-[12px] text-zinc-500 mb-1">Телефон *</label>
+                        <input type="tel" placeholder="+996 700 000 000" value={lookup.phone || ""}
+                          onChange={e => setLookup(l => ({ ...l, phone: e.target.value }))}
+                          className="w-full h-9 px-3 text-[13px] border border-zinc-200 rounded-lg bg-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[12px] text-zinc-500 mb-1">Email</label>
+                        <input type="email" placeholder="example@mail.com" value={lookup.email || ""}
+                          onChange={e => setLookup(l => ({ ...l, email: e.target.value }))}
+                          className="w-full h-9 px-3 text-[13px] border border-zinc-200 rounded-lg bg-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+                      </div>
+                      <div>
+                        <label className="block text-[12px] text-zinc-500 mb-1">Тип клиента</label>
+                        <select value={lookup.tag || "new"} onChange={e => setLookup(l => ({ ...l, tag: e.target.value }))}
+                          className="w-full h-9 px-3 pr-8 text-[13px] border border-zinc-200 rounded-lg bg-white appearance-none focus:outline-none focus:border-blue-400 cursor-pointer">
+                          <option value="new">Новый</option>
+                          <option value="regular">Постоянный</option>
+                          <option value="vip">VIP</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button onClick={async () => {
+                      if (!lookup.firstName.trim() || !lookup.lastName.trim() || !lookup.phone?.trim()) return;
+                      const newClient = await api.createClient({
+                        firstName: lookup.firstName.trim(),
+                        lastName:  lookup.lastName.trim(),
+                        birthDate: lookup.birthDate,
+                        phone:     lookup.phone.trim(),
+                        email:     lookup.email?.trim() || "",
+                        tag:       lookup.tag || "new",
+                      });
+                      if (newClient) { setFoundClient(newClient); setNotFound(false); }
+                    }}
+                      className="w-full h-9 inline-flex items-center justify-center gap-1.5 bg-zinc-900 hover:bg-zinc-700 text-white text-[13px] font-medium rounded-lg transition-colors">
+                      <IconPlus />Создать клиента и продолжить
+                    </button>
+                    <button onClick={() => setNotFound(false)} className="w-full text-[12px] text-zinc-400 hover:text-zinc-600 transition-colors">
+                      Попробовать снова
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* ВРЕМЯ */}
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.5px] text-zinc-400 mb-2">Время визита</div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
               <div><label className={lbl}>Дата *</label><input type="date" value={form.date} onChange={setF("date")} className={inp} /></div>
               <div><label className={lbl}>Время *</label><input type="time" value={form.time} onChange={setF("time")} className={inp} /></div>
             </div>
           </div>
 
-          {/* УСЛУГИ */}
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.5px] text-zinc-400 mb-2">Услуги</div>
             {items.length > 0 && (
@@ -221,7 +281,6 @@ function QuickBookModal({ initialDate, initialTime, clients, services, staff, on
             </div>
           </div>
 
-          {/* СТАТУС И КАБИНЕТ */}
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.5px] text-zinc-400 mb-2">Статус и кабинет</div>
             <div className="space-y-3">
@@ -233,13 +292,12 @@ function QuickBookModal({ initialDate, initialTime, clients, services, staff, on
               <div><label className={lbl}>Кабинет</label>
                 <select value={form.roomId} onChange={setF("roomId")} className={sel}>
                   <option value="">— Не выбран —</option>
-                  {ROOMS.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  {(rooms || []).filter(r => r.active !== false).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
               </div>
             </div>
           </div>
 
-          {/* ДЕНЬГИ */}
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.5px] text-zinc-400 mb-2">Деньги</div>
             <div className="space-y-3">
@@ -255,7 +313,6 @@ function QuickBookModal({ initialDate, initialTime, clients, services, staff, on
             </div>
           </div>
 
-          {/* ЗАМЕТКА */}
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.5px] text-zinc-400 mb-2">Заметка</div>
             <textarea value={form.notes} onChange={setF("notes")} rows={3}
@@ -264,7 +321,6 @@ function QuickBookModal({ initialDate, initialTime, clients, services, staff, on
           </div>
         </div>
 
-        {/* footer */}
         <div className="px-5 py-4 border-t border-zinc-100 rounded-b-2xl shrink-0 space-y-2">
           <button onClick={handleSave} disabled={!foundClient || !items.length}
             className="w-full h-11 inline-flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-700 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white text-[14px] font-semibold rounded-lg transition-colors">
@@ -282,14 +338,14 @@ function QuickBookModal({ initialDate, initialTime, clients, services, staff, on
 // ── page meta ─────────────────────────────────────────────────────────────────
 
 const PAGE_META = {
-  "/appointments": { title: "Записи",          subtitle: "Список всех записей на приём",          actions: (h) => [{ label: "Новая запись", onClick: h.openNewAppointment, hideLabelMobile: true }] },
-  "/calendar":     { title: "Календарь",        subtitle: "Управление записями",                   actions: (h) => [{ label: "Новая запись", onClick: h.openNewAppointment, hideLabelMobile: true }] },
-  "/clients":      { title: "Клиенты",          subtitle: "База клиентов клиники",                 actions: () => [] },
-  "/staff":        { title: "Сотрудники",       subtitle: "Загрузка специалистов на сегодня",      actions: () => [] },
-  "/analytics":    { title: "Аналитика",        subtitle: "Сводные показатели работы клиники",     actions: () => [] },
-  "/services":     { title: "Услуги",           subtitle: "Каталог услуг клиники",                 actions: () => [] },
-  "/products":     { title: "Товары и склад",   subtitle: "Препараты и расходные материалы",       actions: () => [] },
-  "/settings":     { title: "Настройки",        subtitle: "Управление системой",                   actions: () => [] },
+  "/appointments": { title: "Записи",        subtitle: "Список всех записей на приём",        actions: (h) => [{ label: "Новая запись",   onClick: h.openNewAppointment, hideLabelMobile: true }] },
+  "/calendar":     { title: "Календарь",      subtitle: "Управление записями",                 actions: (h) => [{ label: "Новая запись",   onClick: h.openNewAppointment, hideLabelMobile: true }] },
+  "/clients":      { title: "Клиенты",        subtitle: "База клиентов клиники",               actions: () => [] },
+  "/staff":        { title: "Сотрудники",     subtitle: "Загрузка специалистов на сегодня",   actions: (h) => [{ label: "Новый сотрудник", onClick: h.openNewStaff,       hideLabelMobile: true }] },
+  "/settings":     { title: "Настройки",      subtitle: "Управление демо-данными и системой", actions: () => [] },
+  "/analytics":    { title: "Аналитика",      subtitle: "Сводные показатели работы клиники",  actions: () => [] },
+  "/services":     { title: "Услуги",         subtitle: "Каталог услуг клиники",              actions: (h) => [{ label: "Новая услуга",   onClick: h.openNewService,     hideLabelMobile: true }] },
+  "/products":     { title: "Товары и склад", subtitle: "Препараты и расходные материалы",    actions: (h) => [{ label: "Новый товар",    onClick: h.openNewProduct,     hideLabelMobile: true }] },
 };
 
 // ── Layout ────────────────────────────────────────────────────────────────────
@@ -302,26 +358,85 @@ export default function Layout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [modalOpen,   setModalOpen]   = useState(false);
+  const [settingsTab, setSettingsTab] = useState(null);
+  const [notifOpen,   setNotifOpen]   = useState(false);
+  const notifRef = useRef(null);
   const location = useLocation();
 
   const { data, api } = useAppData();
   const { clients, services, staff } = data;
+  const todayStr = today();
+const countersData = useMemo(() => {
+  const appointments = data.appointments || [];
+  const todayAppts = appointments.filter(a => a.date === todayStr);
+
+  return {
+    appointments: todayAppts.length > 0 ? { text: todayAppts.length, tone: "default" } : null,
+    calendar:     todayAppts.length > 0 ? { text: todayAppts.length, tone: "default" } : null,
+    clients:      (data.clients || []).length > 0 ? { text: (data.clients || []).length, tone: "muted" } : null,
+    staff:        (data.staff || []).filter(s => s.active !== false && (s.role === "cosmetologist" || s.role === "permanent")).length > 0
+                    ? { text: (data.staff || []).filter(s => s.active !== false && (s.role === "cosmetologist" || s.role === "permanent")).length, tone: "muted" }
+                    : null,
+  }
+}, [data.appointments, data.clients, data.staff, todayStr])
+  // закрывать дропдаун при клике вне
+  useEffect(() => {
+    const handler = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // уведомления — неподтверждённые записи на сегодня
+  const notifications = useMemo(() => {
+    const todayStr = today();
+    return (data.appointments || [])
+      .filter(a => a.date === todayStr && a.status === "pending")
+      .map(a => {
+        const c = (data.clients || []).find(x => x.id === a.clientId);
+        const clientName = c ? `${c.firstName || ""} ${c.lastName || ""}`.trim() || "Клиент" : "Клиент";
+        return { id: a.id, text: clientName, time: a.time };
+      });
+  }, [data.appointments, data.clients]);
+
+  useEffect(() => {
+    const handler = (e) => setSettingsTab(e.detail.tab);
+    window.addEventListener("settings-tab-change", handler);
+    return () => window.removeEventListener("settings-tab-change", handler);
+  }, []);
+
+  useEffect(() => {
+    if (!location.pathname.startsWith("/settings")) setSettingsTab(null);
+  }, [location.pathname]);
 
   const metaKey = Object.keys(PAGE_META).find(k => location.pathname === k) ||
                   Object.keys(PAGE_META).find(k => location.pathname.startsWith(k + "/")) || null;
   const meta = metaKey ? PAGE_META[metaKey] : null;
 
-  const actionHandlers = { openNewAppointment: () => setModalOpen(true) };
-  const topbarActions  = meta ? meta.actions(actionHandlers) : [];
+  const actionHandlers = {
+    openNewAppointment: () => setModalOpen(true),
+    openNewService:     () => window.dispatchEvent(new CustomEvent("open-new-service")),
+    openNewProduct:     () => window.dispatchEvent(new CustomEvent("open-new-product")),
+    openNewStaff:       () => window.dispatchEvent(new CustomEvent("open-new-staff")),
+    openNewRoom:        () => window.dispatchEvent(new CustomEvent("open-new-room")),
+  };
+
+  let topbarActions = meta ? meta.actions(actionHandlers) : [];
+  if (location.pathname === "/settings" && settingsTab === "rooms") {
+    topbarActions = [{ label: "Новый кабинет", onClick: actionHandlers.openNewRoom, hideLabelMobile: true }];
+  }
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
 
       {modalOpen && (
         <QuickBookModal
+          api={api}
           clients={clients}
           services={services}
           staff={staff}
+          rooms={data.rooms}
           onSave={api.createAppointment}
           onClose={() => setModalOpen(false)}
         />
@@ -337,10 +452,12 @@ export default function Layout({
         userRole={user.role}
         counters={counters}
         onLogout={onLogout}
+          counters={countersData}
       />
 
       <div className="flex flex-col flex-1 min-w-0">
         <header className="sticky top-0 z-10 flex items-center gap-3 min-h-16 px-6 bg-white border-b border-zinc-200">
+
           <button className="md:hidden w-8 h-8 flex items-center justify-center rounded-md hover:bg-zinc-100 text-zinc-500 transition-colors"
             onClick={() => setSidebarOpen(true)} aria-label="Открыть меню">
             <HamburgerIcon />
@@ -356,6 +473,8 @@ export default function Layout({
               <h1 className="text-[22px] font-bold tracking-tight text-zinc-900">{clinic.name}</h1>
             )}
           </div>
+
+
 
           {topbarActions.length > 0 && (
             <div className="flex items-center gap-2 shrink-0">

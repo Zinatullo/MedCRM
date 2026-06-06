@@ -129,22 +129,33 @@ export default function App() {
         />
       )}
 
-      {page === "settings" && (
-        <SettingsPage
-          clinic={{}}
-          rooms={[]}
-          greenApi={{}}
-          system={{ productName: "PROlab Medical", version: "1.0" }}
-          onSaveClinic={(cl) => { /* сохранить в localStorage или отдельный эндпоинт */ }}
-          onSaveGreenApi={(ga) => { /* аналогично */ }}
-          onExport={() => { /* сериализовать data и скачать JSON */ }}
-          onImport={(file) => { /* прочитать JSON и вызвать нужные create-методы */ }}
-          onResetDemo={() => { /* загрузить демо и перезаписать через api */ }}
-          onClearAll={() => { /* удалить всё */ }}
-          onNewRoom={() => { /* модал */ }}
-          onEditRoom={(id) => { /* модал */ }}
-        />
-      )}
+{page === "settings" && (
+  <SettingsPage
+    clinic={{}}
+    rooms={data.rooms || []}
+    greenApi={{}}
+    system={{ productName: "PROlab Medical", version: "1.0" }}
+    onSaveClinic={(cl) => {}}
+    onSaveGreenApi={(ga) => {}}
+    onExport={() => {}}
+    onImport={(file) => {}}
+    onResetDemo={() => {}}
+    onClearAll={() => {}}
+    onNewRoom={() => {}}
+    onEditRoom={(id) => {}}
+        system={{
+      productName:      "PROlab Medical",
+      version:          "2.0",
+      description:      "Медицинская CRM-система для клиник косметологии и эстетики.",
+      supportPhone:     "+996 555 000 000",
+      supportWhatsapp:  "+996 555 000 000",
+      supportEmail:     "support@prolab-medical.kg",
+      supportTelegram:  "@prolab_support",
+      supportWebsite:   "https://prolab-medical.kg",
+      supportSchedule:  "Пн–Пт 09:00–18:00 (Bishkek)",
+    }}
+  />
+)}
     </div>
   )
 }

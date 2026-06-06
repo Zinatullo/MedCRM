@@ -27,7 +27,7 @@ export default function NavLink({ item, pathname }) {
       {item.counter && (
         <span
           className={[
-            "inline-flex items-center justify-center min-w-4.5 h-4.5 px-1.5 rounded-full text-[10px] font-semibold shrink-0",
+            "inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold shrink-0 leading-none",
             item.counter.tone === "muted"
               ? "bg-zinc-100 text-zinc-500"
               : item.counter.tone === "warning"

@@ -6,7 +6,7 @@ import {
   servicesApi,
   productsApi,
   serviceCategoriesApi,
-  productCategoriesApi,
+  roomsApi,
 } from "./index"
 
 const toArray = (v) => {
@@ -18,14 +18,16 @@ const toArray = (v) => {
 
 export function useAppData() {
   const [data, setData] = useState({
-    clients:            [],
-    staff:              [],
-    appointments:       [],
-    services:           [],
-    products:           [],
-    serviceCategories:  [],
-    productCategories:  [],
-  })
+  clients:            [],
+  staff:              [],
+  appointments:       [],
+  services:           [],
+  products:           [],
+  serviceCategories:  [],
+  productCategories:  [],
+rooms: [],
+})
+
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
 
@@ -34,24 +36,25 @@ export function useAppData() {
     setError(null)
     try {
       const safe = (p) => p.catch((e) => { console.warn(e.message); return [] })
-      const [clients, staff, appointments, services, products, serviceCategories, productCategories] = await Promise.all([
-        safe(clientsApi.getAll()),
-        safe(employeesApi.getAll()),
-        safe(appointmentsApi.getAll()),
-        safe(servicesApi.getAll()),
-        safe(productsApi.getAll()),
-        safe(serviceCategoriesApi.getAll()),
-        safe(productCategoriesApi.getAll()),
-      ])
-      setData({
-        clients:           toArray(clients),
-        staff:             toArray(staff),
-        appointments:      toArray(appointments),
-        services:          toArray(services),
-        products:          toArray(products),
-        serviceCategories: toArray(serviceCategories),
-        productCategories: toArray(productCategories),
-      })
+const [clients, staff, appointments, services, products, serviceCategories, rooms] = await Promise.all([
+  safe(clientsApi.getAll()),
+  safe(employeesApi.getAll()),
+  safe(appointmentsApi.getAll()),
+  safe(servicesApi.getAll()),
+  safe(productsApi.getAll()),
+  safe(serviceCategoriesApi.getAll()),
+  safe(roomsApi.getAll()),
+])
+setData(prev => ({
+  clients:           toArray(clients),
+  staff:             toArray(staff),
+  appointments:      toArray(appointments),
+  services:          toArray(services),
+  products:          toArray(products),
+  serviceCategories: toArray(serviceCategories),
+  productCategories: [],
+    rooms: toArray(rooms),
+}))
     } catch (e) {
       setError(e.message)
     } finally {
@@ -176,6 +179,33 @@ export function useAppData() {
       await productCategoriesApi.delete(id)
       setData(d => ({ ...d, productCategories: d.productCategories.filter(c => c.id !== id) }))
     },
+
+    // ── Rooms ──
+createRoom: async (roomData) => {
+  const newRoom = { id: `room${Date.now()}`, ...roomData }
+  setData(d => {
+    const updatedRooms = [...d.rooms, newRoom]
+    localStorage.setItem("rooms", JSON.stringify(updatedRooms))
+    return { ...d, rooms: updatedRooms }
+  })
+  return newRoom
+},
+updateRoom: async (id, roomData) => {
+  const updated = { id, ...roomData }
+  setData(d => {
+    const updatedRooms = d.rooms.map(r => r.id === id ? { ...r, ...roomData } : r)
+    localStorage.setItem("rooms", JSON.stringify(updatedRooms))
+    return { ...d, rooms: updatedRooms }
+  })
+  return updated
+},
+deleteRoom: async (id) => {
+  setData(d => {
+    const updatedRooms = d.rooms.filter(r => r.id !== id)
+    localStorage.setItem("rooms", JSON.stringify(updatedRooms))
+    return { ...d, rooms: updatedRooms }
+  })
+},
   }
 
   return { data, loading, error, refresh: load, api }

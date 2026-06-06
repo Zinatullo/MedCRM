@@ -274,6 +274,7 @@ export default function VisitBuilder({
   rooms = [],
   onSave,
   onClientCreate,
+  prefillClient = null,   // ← добавить
 }) {
   const initVisit = () => ({
     client:       null,
@@ -291,7 +292,10 @@ export default function VisitBuilder({
     notes:        "",
   })
 
-  const [v, setV] = useState(initVisit())
+  const [v, setV] = useState(() => prefillClient
+  ? { ...initVisit(), client: prefillClient }
+  : initVisit()
+)
   const set = (k) => (val) => setV(f => ({ ...f, [k]: val }))
   const setE = (k) => (e) => setV(f => ({ ...f, [k]: e.target.value }))
   const setNum = (k) => (e) => setV(f => ({ ...f, [k]: Number(e.target.value) || 0 }))

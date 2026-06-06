@@ -5,9 +5,9 @@ import IconUsers from '../../components/icons/SideBar/IconUsers';
 import IconUserCheck from '../../components/icons/SideBar/IconUserCheck';
 import IconDashboard from '../../components/icons/SideBar/IconDashboard';
 import IconScissors from '../../components/icons/SideBar/IconScissors';
-import IconBox from '../../components/icons/SideBar/IconBox';
+import IconBox from '../../components/icons/IconBox';
 import IconLogout from '../../components/icons/SideBar/IconLogout';
-import NavLink from '../../components/NavLink';
+import NavLink from '../../components/other/NavLink';
 
    const workItems = [
     {

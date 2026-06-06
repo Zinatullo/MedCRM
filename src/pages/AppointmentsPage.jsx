@@ -174,15 +174,15 @@ export default function AppointmentsPage() {
     <div className="flex flex-col gap-4">
       <DailySummary appointments={appointments} services={services} />
 
-      <VisitBuilder
-        clients={clients}
-        services={services}
-        categories={categories}
-        staff={staff}
-        rooms={[]}
-        onSave={api.createAppointment}
-        onClientCreate={api.createClient}
-      />
+<VisitBuilder
+  clients={clients}
+  services={services}
+  categories={categories}
+  staff={staff}
+  rooms={data.rooms}
+  onSave={api.createAppointment}
+  onClientCreate={api.createClient}
+/>
 
       <div className="flex gap-4 items-start">
         <div className="flex-1 min-w-0">
